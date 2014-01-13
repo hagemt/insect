@@ -34,7 +34,7 @@ main(int argc, char *argv[])
 	__session.threads.next = NULL;
 	__session.trigger = reminisce(TRIE_NULL);
 	while (--argc) {
-		if (file_exists(argv[argc])) continue;
+		if (!file_exists(argv[argc])) continue;
 		thread = malloc(sizeof(Thread));
 		if (!thread) continue;
 		thread->worker = &crawl_worker;
