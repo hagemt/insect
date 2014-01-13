@@ -3,41 +3,68 @@
 static struct {
 	Trie *trie;
 	Crawlback call;
-} __state;
+	FILE *target;
+} __session = {
+	TRIE_NULL,
+	&remember,
+	NULL
+};
 
 #include <assert.h>
 #include <stdlib.h>
 
+static void
+__dump_record(Record *);
+
 Crawlback
 reminisce(Trie *trie)
 {
-	assert(__state.trie == TRIE_NULL);
-	__state.trie = (trie == TRIE_NULL) ? trie_new() : trie;
-	return __state.call = &remember;
+	assert(__session.trie == TRIE_NULL);
+	__session.trie = (trie == TRIE_NULL) ? trie_new() : trie;
+	return __session.call = &remember;
 }
 
 int
 remember(Path path)
 {
 	Record *record;
-	assert(path);
-	record = (Record *) trie_lookup(__state.trie, (char *) path);
+	assert(path && __session.trie != TRIE_NULL);
+	record = (Record *) trie_lookup(__session.trie, (char *) path);
 	if (record) {
-		(void) fprintf(stderr, "[RECORD] %p (%s:%d)\n",
-				record, path, record->hits);
 		++record->hits;
+		__dump_record(record);
 	} else {
-		record = malloc(sizeof(Record));
-		record_new(record);
-		record_record(record);
+		record = record_new((RecordPath) path);
+		assert(record);
+		return trie_insert(__session.trie, (char *) path, record) ? 1 : 0;
 	}
-	return trie_insert(__state.trie, (char *) path, record) ? 1 : 0;
+	return 0;
 }
 
 void
 regurgitate(FILE *file)
 {
-	assert(file);
-	record_each((Visitor) free);
-	trie_free(__state.trie);
+	assert(file && __session.trie != TRIE_NULL);
+	__session.target = file;
+	/* clean up records / state */
+	record_purge(&__dump_record);
+	trie_free(__session.trie);
+	__session.trie = TRIE_NULL;
+	__session.call = NULL;
+}
+
+/* */
+
+static void
+__dummy_dump_record(FILE *file, Record *record)
+{
+	assert(file && record);
+	(void) fprintf(file, "[RECORD] %p (%s:%d)\n",
+			(void *) record, record->path, record->hits);
+}
+
+static void
+__dump_record(Record *record)
+{
+	__dummy_dump_record(__session.target, record);
 }
