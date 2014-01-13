@@ -16,7 +16,7 @@ crawl(Path path, Crawlback call)
 		/* FIXME file_info failed */
 		return 0;
 	}
-	if (info.file_type == FILETYPE_REGULAR) {
+	if (info.file_type == FILETYPE_DIRECTORY) {
 		return __expand(path, call);
 	} else if (call) {
 		return (*call)(path);
