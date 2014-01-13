@@ -8,16 +8,16 @@ __record_head = SLIST_NULL;
 #ifdef USE_THREADS
 #include <pthread.h>
 static pthread_mutex_t
-__record_head__ = PTHREAD_MUTEX_INITIALIZER;
-#define LOCK   ((void) pthread_mutex_lock(&__record_head__));
-#define UNLOCK ((void) pthread_mutex_unlock(&__record_head__));
+__record_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK   ((void) pthread_mutex_lock(&__record_mutex));
+#define UNLOCK ((void) pthread_mutex_unlock(&__record_mutex));
 #else /* single thread */
 #define LOCK   ((void) 0);
 #define UNLOCK ((void) 0);
 #endif /* USE_THREADS */
 
-#include "trie_records/alloc.cc"
-#include "trie_records/sort.cc"
+#include "slist_records/alloc.cc"
+#include "slist_records/sort.cc"
 
 int
 record_count(void)
