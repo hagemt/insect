@@ -5,7 +5,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define USE_PTHREAD
 #include "insect.h"
 
 static struct {
