@@ -1,0 +1,30 @@
+static RecordComparator __cmp = NULL;
+typedef int (*qsort_cmp)(const void *, const void *);
+
+static int
+__dummy_record_comparator(const void *v1, const void *v2)
+{
+	Record *r1, *r2;
+	r1 = * (Record **) v1;
+	r2 = * (Record **) v2;
+	return __cmp(r1, r2);
+}
+
+static qsort_cmp
+__wrap_record_comparator(RecordComparator cmp)
+{
+	assert(cmp);
+	__cmp = cmp;
+	return &__dummy_record_comparator;
+}
+
+static void
+__to_array_then_qsort(RecordSet *set, RecordComparator cmp)
+{
+	assert(set && cmp);
+	LOCK {
+		set->size = slist_length(__record_head);
+		set->data = (Record **) slist_to_array(__record_head);
+	} UNLOCK
+	qsort(set, set->size, sizeof(Record *), __wrap_record_comparator(cmp));
+}

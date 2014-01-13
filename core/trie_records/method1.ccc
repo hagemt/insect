@@ -1,0 +1,20 @@
+static void
+__sort_copy_then_to_array(RecordSet *set, RecordComparator cmp)
+{
+	SListEntry *head_copy;
+	SListIterator iterator;
+	assert(set && cmp);
+	/* first make a clone of the list to sort */
+	head_copy = SLIST_NULL;
+	LOCK {
+		slist_iterate(&__record_head, &iterator);
+		while (slist_iter_has_more(&iterator)) {
+			(void) slist_prepend(&head_copy, slist_iter_next(&iterator));
+		}
+	} UNLOCK
+	slist_sort(&head_copy, (SListCompareFunc) cmp);
+	/* copy data into record set and delete the copy */
+	set->size = slist_length(head_copy);
+	set->data = (Record **) slist_to_array(head_copy);
+	slist_free(head_copy);
+}
