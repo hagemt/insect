@@ -3,40 +3,40 @@
 #include <libcalg/slist.h>
 
 static SListEntry *
-__record_head;
+__record_head = SLIST_NULL;
 
-#ifdef USE_PTHREAD
+#ifdef USE_THREADS
 #include <pthread.h>
 static pthread_mutex_t
-__record_head__ = PTHREAD_MUTEX_INITALIZER;
-#define LOCK   ((void) pthread_mutex_lock(&__record_head__);)
-#define UNLOCK ((void) pthread_mutex_unlock(&__record_head__);)
-#else
+__record_head__ = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK   ((void) pthread_mutex_lock(&__record_head__));
+#define UNLOCK ((void) pthread_mutex_unlock(&__record_head__));
+#else /* single thread */
 #define LOCK   ((void) 0);
 #define UNLOCK ((void) 0);
-#endif /* USE_PTHREAD */
+#endif /* USE_THREADS */
 
-#include <assert.h>
-
-void
-record_create(Record *record)
-{
-	assert(record);
-	record->hits = 0;
-}
-
-void
-record_destroy(Record *record)
-{
-	assert(record);
-	record->hits = 0;
-}
+#include "trie_records/alloc.cc"
+#include "trie_records/sort.cc"
 
 int
 record_count(void)
 {
 	/* FIXME(teh): should use LOCK/UNLOCK? */
 	return slist_length(__record_head);
+}
+
+#include <assert.h>
+
+static void
+__record(Record *record)
+{
+	SListEntry *new_head;
+	assert(record);
+	LOCK {
+		new_head = slist_prepend(&__record_head, record);
+	} UNLOCK
+	assert(new_head == __record_head);
 }
 
 void
@@ -53,15 +53,12 @@ record_each(Visitor visitor)
 }
 
 void
-record_record(Record *record)
+record_purge(Visitor optional)
 {
-	SListEntry *new_head;
-	assert(record);
+	if (optional) record_each(optional);
+	record_each(record_free);
 	LOCK {
-		new_head = slist_prepend(&__record_head, record);
+		slist_free(__record_head);
+		__record_head = SLIST_NULL;
 	} UNLOCK
-	assert(new_head == __record_head);
 }
-
-#include "trie_record_set.cc"
-#include "trie_record_sorted.cc"
