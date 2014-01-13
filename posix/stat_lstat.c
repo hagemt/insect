@@ -41,7 +41,7 @@ file_info(FilePath path, FileInfo *info)
 int
 file_exists(FilePath path)
 {
-	return __file_info(path, ((FileInfo *) 0), FILEIREQ_NONE);
+	return __file_info(path, ((FileInfo *) 0), FILEIREQ_NONE) == 0;
 }
 
 int
@@ -67,16 +67,16 @@ file_can_write(FilePath path)
 static int
 __file_info(FilePath path, FileInfo *info, FileIreq req)
 {
-	struct stat stat_info;
+	struct stat __info;
 	assert(path && (info || req == FILEIREQ_NONE));
-	if (lstat(path, &stat_info)) {
+	if (lstat(path, &__info)) {
 		return errno;
 	}
 	if (FILEIREQ_CHECK(req, FILEIREQ_TYPE)) {
 		info->file_type = FILETYPE_UNKNOWN;
-		if (S_ISREG(stat_info.st_mode)) {
+		if (S_ISREG(__info.st_mode)) {
 			info->file_type = FILETYPE_REGULAR;
-		} else if (S_ISDIR(stat_info.st_mode)) {
+		} else if (S_ISDIR(__info.st_mode)) {
 			info->file_type = FILETYPE_DIRECTORY;
 		} else {
 			info->file_type = FILETYPE_UNKNOWN;
@@ -84,7 +84,7 @@ __file_info(FilePath path, FileInfo *info, FileIreq req)
 	}
 	if (FILEIREQ_CHECK(req, FILEIREQ_PERM)) {
 		info->file_perm = FILEPERM_NONE;
-		/* TODO(teh): use st_mode */
+		/* TODO(teh): use st_mode in combination with getuid */
 	}
 	return 0;
 }
