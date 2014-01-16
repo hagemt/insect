@@ -1,56 +1,120 @@
 #include "insect.h"
 
-static struct {
-	Trie *trie;
-	Crawlback call;
-	FILE *target;
-} __session = {
-	TRIE_NULL,
-	&remember,
-	NULL
-};
+#include <libcalg/trie.h>
 
-#include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 
-static void
-__dump_record(Record *);
+static struct {
+	Trie *trie;
+	FILE *target;
+	Crawlback filter;
+} __session = {
+	TRIE_NULL,
+	NULL, NULL
+};
 
-Crawlback
-reminisce(Trie *trie)
+#ifdef USE_THREADS
+#include <pthread.h>
+static pthread_mutex_t
+__session_mutex = PTHREAD_MUTEX_INITIALIZER;
+#define LOCK   ((void) pthread_mutex_lock(&__session_mutex));
+#define UNLOCK ((void) pthread_mutex_unlock(&__session_mutex));
+#else /* single thread */
+#define LOCK   ((void) 0);
+#define UNLOCK ((void) 0);
+#endif /* USE_THREADS */
+
+#include <assert.h>
+
+int
+reminisce(void *trie)
 {
 	assert(__session.trie == TRIE_NULL);
-	__session.trie = (trie == TRIE_NULL) ? trie_new() : trie;
-	return __session.call = &remember;
+	__session.trie = (trie == TRIE_NULL) ? trie_new() : (Trie *) trie;
+	return (__session.trie == TRIE_NULL);
 }
 
 int
 remember(Path path)
 {
 	Record *record;
+	int inserted = 0;
 	assert(path && __session.trie != TRIE_NULL);
-	record = (Record *) trie_lookup(__session.trie, (char *) path);
-	if (record) {
-		++record->hits;
-		__dump_record(record);
-	} else {
-		record = record_new((RecordPath) path);
-		assert(record);
-		return trie_insert(__session.trie, (char *) path, record) ? 1 : 0;
-	}
-	return 0;
+	LOCK {
+		record = (Record *) trie_lookup(__session.trie, (char *) path);
+		if (record) {
+			++record->hits;
+		} else {
+			record = record_new(path);
+			assert(record);
+			if (trie_insert(__session.trie, (char *) path, record)) {
+				inserted = record->hits;
+			}
+		}
+	} UNLOCK
+	return inserted;
 }
 
-void
-regurgitate(FILE *file)
+static int
+__filter_path_true(Path);
+
+static int
+__filter_record_by_path(Record *);
+
+static void
+__free_record_from_trie(Record *);
+
+static void
+__dump_record(Record *);
+
+int
+regurgitate(void *target, Crawlback filter)
 {
-	assert(file && __session.trie != TRIE_NULL);
-	__session.target = file;
-	/* clean up records / state */
-	record_purge(&__dump_record);
-	trie_free(__session.trie);
-	__session.trie = TRIE_NULL;
-	__session.call = NULL;
+	int before, after;
+	assert(target && __session.trie != TRIE_NULL);
+	if (!filter) filter = &__filter_path_true;
+	__session.target = (FILE *) target;
+	__session.filter = filter;
+	before = trie_num_entries(__session.trie);
+	record_each(&__filter_record_by_path, &__free_record_from_trie);
+	after = trie_num_entries(__session.trie);
+	if (before != after) {
+		/* invalidate records/cache */
+	}
+	if (after == 0) {
+		/* clean up records / state */
+		trie_free(__session.trie);
+		__session.trie = TRIE_NULL;
+		/* TODO re-consider...? */
+		record_purge(NULL, &__dump_record);
+	}
+	return after;
+}
+
+/* TODO(teh): use LOCK / UNLOCK for __session_mutex */
+
+static int
+__filter_path_true(Path path)
+{
+	assert(path);
+	return 1;
+}
+
+static int
+__filter_record_by_path(Record *record)
+{
+	assert(record && record->path);
+	return (__session.filter)(record->path);
+}
+
+static void
+__free_record_from_trie(Record *record)
+{
+	int result;
+	assert(record && record->path);
+	result = trie_remove(__session.trie, (char *) record->path);
+	assert(result);
 }
 
 /* */
@@ -66,5 +130,6 @@ __dummy_dump_record(FILE *file, Record *record)
 static void
 __dump_record(Record *record)
 {
+	if (!__session.target) __session.target = stderr;
 	__dummy_dump_record(__session.target, record);
 }
