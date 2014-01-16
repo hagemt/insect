@@ -86,13 +86,15 @@ __record_each(Filter filter, Visitor external, SListVisitor internal)
 void
 record_each(Filter filter, Visitor action)
 {
+	assert(action != &record_free);
 	(void) __record_each(filter, action, NULL);
 }
 
 int
 record_purge(Filter filter, Visitor action)
 {
-	int purged = __record_each(filter, action, slist_iter_remove);
+	int purged; record_each(filter, action);
+	purged = __record_each(filter, record_free, slist_iter_remove);
 	LOCK {
 		/* TODO(teh): reconsider...? */
 		if (record_count() == 0) {

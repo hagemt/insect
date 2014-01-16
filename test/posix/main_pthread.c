@@ -6,6 +6,9 @@
 #include <unistd.h>
 
 #include "insect.h"
+#ifndef USE_THREADS
+#error "This file requires insect's concurrency (thread) features"
+#endif /* USE_THREADS */
 
 static Thread
 __threads;
@@ -54,7 +57,7 @@ main(int argc, char *argv[])
 		next = current->next;
 		free(current);
 	}
-	(void) regurgitate(NULL, NULL);
+	(void) regurgitate(stderr, NULL);
 	return EXIT_SUCCESS;
 }
 
