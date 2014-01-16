@@ -8,18 +8,16 @@ __expand(Path, Crawlback);
 #include "insect/file/stat.h"
 
 int
-crawl(Path path, Crawlback call)
+crawl(Path path, Crawlback callback)
 {
-	FileInfo info;
 	assert(path);
-	if (file_info(path, &info)) {
-		/* FIXME file_info failed */
-		return 0;
-	}
-	if (info.file_type == FILETYPE_DIRECTORY) {
-		return __expand(path, call);
-	} else if (call) {
-		return (*call)(path);
+	switch (file_type(path)) {
+	case FILETYPE_DIRECTORY:
+		return __expand(path, callback);
+	case FILETYPE_REGULAR:
+		if (callback) return (*callback)(path);
+	default:
+		break;
 	}
 	return 0;
 }
@@ -33,7 +31,7 @@ crawl(Path path, Crawlback call)
 #include <unistd.h>
 
 static int
-__expand(Path path, Crawlback call)
+__expand(Path path, Crawlback callback)
 {
 	DIR *dir;
 	struct dirent *entry;
@@ -53,7 +51,7 @@ __expand(Path path, Crawlback call)
 		(void) snprintf(buffer, PATH_MAX, "%s/%s", path, entry->d_name);
 		buffer[PATH_MAX - 1] = '\0';
 		/* aggregate results */
-		crawled += crawl(buffer, call);
+		crawled += crawl(buffer, callback);
 	}
 	if (closedir(dir)) {
 		(void) fprintf(stderr, "[%s] %s (%s)\n",
