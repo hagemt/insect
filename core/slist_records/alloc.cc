@@ -3,23 +3,16 @@
 static void
 __record(Record *);
 
+static void
+__path_copy(Path, Path *);
+/* FIMXE(teh): ^ inline? */
+
 #include <assert.h>
 
 #include <stdlib.h>
-#include <string.h>
-
-static void
-__path_copy(RecordPath path, RecordPath *ref)
-{
-	int len = strnlen(path, RECORD_PATH_MAX);
-	assert(ref);
-	*ref = malloc(len + 1);
-	assert(*ref);
-	(void) strncpy(*ref, path, len + 1);
-}
 
 Record *
-record_new(RecordPath path)
+record_new(Path path)
 {
 	Record *record;
 	assert(path);
@@ -37,6 +30,21 @@ record_free(Record *record)
 {
 	assert(record);
 	record->hits = 0;
-	free(record->path);
+	free((void *) record->path);
 	free(record);
+}
+
+/* */
+
+#include <string.h>
+
+static void
+__path_copy(Path old_path, Path *new_copy)
+{
+	int len;
+	assert(old_path && new_copy);
+	len = strnlen(old_path, INSECT_PATH_MAX);
+	*new_copy = malloc(len + 1);
+	assert(*new_copy);
+	(void) strncpy((char *) *new_copy, old_path, len + 1);
 }
