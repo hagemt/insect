@@ -1,19 +1,17 @@
 #ifndef __INSECT_RECORDS_H__
 #define __INSECT_RECORDS_H__
 
-/* TODO(teh): use platform PATH_MAX */
-#define RECORD_PATH_MAX 4096
-typedef char *RecordPath;
+#include "file/path.h"
 
 struct record_t {
-	RecordPath path;
+	Path path;
 	int hits;
 };
 
 typedef struct record_t Record;
 
 extern Record *
-record_new(RecordPath);
+record_new(Path);
 
 extern void
 record_free(Record *);
@@ -23,13 +21,14 @@ record_count(void);
 
 /* functional interface (visitors) */
 
+typedef int (*Filter)(Record *);
 typedef void (*Visitor)(Record *);
 
 extern void
-record_each(Visitor);
+record_each(Filter, Visitor);
 
-extern void
-record_purge(Visitor);
+extern int
+record_purge(Filter, Visitor);
 
 /* sorted records (incomplete) */
 

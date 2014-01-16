@@ -14,6 +14,9 @@ FileType; /* public API */
 typedef const char *
 FilePath; /* public API */
 
+extern int
+file_exists(FilePath);
+
 extern FileType
 file_type(FilePath);
 
@@ -23,8 +26,8 @@ enum file_perm_t {
 	FILEPERM_NONE = 0x00,
 	FILEPERM_R    = 0x01,
 	FILEPERM_W    = 0x02,
-	FILEPERM_RW   = FILEPERM_R | FILEPERM_W,
 	FILEPERM_X    = 0x04,
+	FILEPERM_RW   = FILEPERM_R | FILEPERM_W,
 	FILEPERM_ALL  = FILEPERM_RW | FILEPERM_X
 };
 
@@ -38,19 +41,5 @@ struct file_info_t {
 
 typedef struct file_info_t
 FileInfo; /* private API */
-
-extern int
-file_exists(FilePath);
-
-extern int
-file_can_read(FilePath);
-
-extern int
-file_can_write(FilePath);
-
-/* ^ TODO(teh): more of these? */
-
-extern int
-file_info(FilePath, FileInfo *);
 
 #endif /* __STAT_H__ */
