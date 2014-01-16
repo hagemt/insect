@@ -15,9 +15,12 @@ LIB_SOURCES := $(wildcard core/*.c posix/*.c)
 LIB_OBJECTS := $(LIB_SOURCES:.c=.o)
 
 # For concurrent version, uncomment/replace:
-#CFLAGS := $(CFLAGS) -DUSE_THREADS -lpthread
-#TAG_SOURCES := test/posix/main_pthread.c
-TAG_SOURCES := test/main_simple.c
+CFLAGS := $(CFLAGS) -DUSE_THREADS -lpthread
+TAG_THREAD := test/posix/main_pthread.c
+TAG_SORTED := test/main_sorted.c
+TAG_SIMPLE := test/main_simple.c
+
+TAG_SOURCES := $(TAG_THREAD)
 TAG_OBJECTS := $(TAG_SOURCES:.c=.o)
 
 all: $(BUILD_TAG)

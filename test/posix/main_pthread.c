@@ -7,10 +7,8 @@
 
 #include "insect.h"
 
-static struct {
-	Thread threads;
-	Crawlback trigger;
-} __session;
+static Thread
+__threads;
 
 static void *
 crawl_worker(void *data);
@@ -24,43 +22,39 @@ collect_worker(Thread *);
 int
 main(int argc, char *argv[])
 {
-	Thread *thread;
+	Thread *current, *next;
 	if (argc < 2) {
 		(void) fprintf(stderr, "[%s] %s (%s)\n",
 				"USAGE", *argv, "path/to/crawl *");
 		return EXIT_FAILURE;
 	}
-	__session.threads.id = pthread_self();
-	__session.threads.next = NULL;
-	__session.trigger = reminisce(TRIE_NULL);
+	__threads.id = pthread_self();
+	__threads.next = NULL;
+	(void) reminisce(NULL);
 	while (--argc) {
 		if (!file_exists(argv[argc])) continue;
-		thread = malloc(sizeof(Thread));
-		if (!thread) continue;
-		thread->worker = &crawl_worker;
-		thread->input = argv[argc];
-		thread->next = __session.threads.next;
-		if (spawn_worker(thread)) {
+		current = malloc(sizeof(Thread));
+		if (!current) continue;
+		current->worker = &crawl_worker;
+		current->input = argv[argc];
+		current->next = __threads.next;
+		if (spawn_worker(current)) {
 			/* FIXME pthread_create failed */
-			free(thread);
+			free(current);
 		} else {
-			__session.threads.next = thread;
+			__threads.next = current;
 		}
 	}
-	/*
-		(void) fprintf(stdout, "[INFO] crawled %d entries (for '%s')\n",
-				crawl((const char *) argv[argc], trigger), argv[argc]);
-	*/
-	thread = __session.threads.next;
-	while (thread) {
-		Thread *temp = thread->next;
-		if (collect_worker(thread)) {
+	/* wait, join, cleanup */
+	next = __threads.next;
+	while ((current = next)) {
+		if (collect_worker(current)) {
 			/* FIXME pthread_join failed */
 		}
-		free(thread);
-		thread = temp;
+		next = current->next;
+		free(current);
 	}
-	regurgitate(stdout);
+	(void) regurgitate(NULL, NULL);
 	return EXIT_SUCCESS;
 }
 
@@ -70,8 +64,8 @@ static void *
 crawl_worker(void *data)
 {
 	Thread *thread = (Thread *) data;
-	assert(thread && thread->input && __session.trigger);
-	(void) crawl((const char *) thread->input, __session.trigger);
+	assert(thread && thread->input);
+	(void) crawl((Path) thread->input, &remember);
 	return thread->input;
 }
 

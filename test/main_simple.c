@@ -6,19 +6,18 @@
 int
 main(int argc, char *argv[])
 {
-	Crawlback crawlback;
 	if (argc < 2) {
 		(void) fprintf(stderr, "[%s] %s (%s)\n",
 				"USAGE", *argv, "path/to/crawl *");
 		return EXIT_FAILURE;
 	}
-	crawlback = reminisce(TRIE_NULL);
+	(void) reminisce(NULL);
 	while (--argc) {
 		if (file_exists(argv[argc])) {
 			(void) fprintf(stdout, "[INFO] crawled %d entries (for '%s')\n",
-					crawl((const char *) argv[argc], crawlback), argv[argc]);
+					crawl((const char *) argv[argc], &remember), argv[argc]);
 		}
 	}
-	regurgitate(stdout);
+	(void) regurgitate(stdout, NULL);
 	return EXIT_SUCCESS;
 }
