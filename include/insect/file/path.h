@@ -3,6 +3,8 @@
 
 typedef const char *Path;
 
+typedef int (*Crawlback)(Path);
+
 /* TODO(teh): find/use system PATH_MAX? */
 #define INSECT_PATH_MAX 4096
 

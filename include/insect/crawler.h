@@ -2,7 +2,6 @@
 #define __INSECT_CRAWLER_H__
 
 #include "file/path.h"
-typedef int (*Crawlback)(Path);
 
 /* custom directory walker */
 int crawl(Path, Crawlback);
