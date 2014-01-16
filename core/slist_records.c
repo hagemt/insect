@@ -39,26 +39,66 @@ __record(Record *record)
 	assert(new_head == __record_head);
 }
 
-void
-record_each(Visitor visitor)
+/*
+typedef void (*Processor)(Record *, SListIterator *);
+
+union Action {
+	Crawlback simple;
+	Processor complex;
+};
+
+enum ActionType { SIMPLE, COMPLEX };
+*/
+
+static int
+__always_true(Record *record)
 {
+	assert(record);
+	return 1;
+}
+
+typedef void (*SListVisitor)(SListIterator *);
+
+static int
+__record_each(Filter filter, Visitor external, SListVisitor internal)
+{
+	int x, y, z;
+	Record *record;
 	SListIterator iterator;
-	assert(visitor);
+	if (!filter) filter = &__always_true;
 	LOCK {
+		x = slist_length(__record_head);
 		slist_iterate(&__record_head, &iterator);
-		while (slist_iter_has_more(&iterator)) {
-			(*visitor)(slist_iter_next(&iterator));
+		for (y = z = 0; slist_iter_has_more(&iterator); ++z) {
+			record = slist_iter_next(&iterator);
+			assert(record && record->path);
+			if ((*filter)(record)) { ++y;
+				if (external) (*external)(record);
+				if (internal) (*internal)(&iterator);
+			}
 		}
+		assert(x == z);
+		assert(y <= z);
 	} UNLOCK
+	return y;
 }
 
 void
-record_purge(Visitor optional)
+record_each(Filter filter, Visitor action)
 {
-	if (optional) record_each(optional);
-	record_each(record_free);
+	(void) __record_each(filter, action, NULL);
+}
+
+int
+record_purge(Filter filter, Visitor action)
+{
+	int purged = __record_each(filter, action, slist_iter_remove);
 	LOCK {
-		slist_free(__record_head);
-		__record_head = SLIST_NULL;
+		/* TODO(teh): reconsider...? */
+		if (record_count() == 0) {
+			slist_free(__record_head);
+			__record_head = SLIST_NULL;
+		}
 	} UNLOCK
+	return purged;
 }
