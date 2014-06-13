@@ -43,6 +43,6 @@ struct record_set_t {
 typedef struct record_set_t RecordSet;
 
 RecordSet *
-record_sort(RecordComparator);
+record_sorted_copy(RecordSet *);
 
 #endif /* __INSECT_RECORDS_H__ */

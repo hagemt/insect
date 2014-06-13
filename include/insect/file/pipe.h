@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-int
+extern int
 create_fpipe(FILE *, FILE *);
 
 #endif /* __INSECT_PIPE_H__ */

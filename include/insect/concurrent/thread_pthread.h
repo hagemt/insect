@@ -3,13 +3,16 @@
 
 #include <pthread.h>
 
-struct thread {
+struct thread_t {
 	pthread_t id;
 	void * (*worker)(void *);
 	void *input, *output;
-	struct thread *next;
+	struct thread_t *next;
 };
 
-typedef struct thread Thread;
+/**
+ * \brief Essentially a single- (forward-) linked node w/ context.
+ */
+typedef struct thread_t Thread;
 
 #endif /* __INSECT_PTHREAD_H__ */

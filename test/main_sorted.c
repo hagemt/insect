@@ -2,18 +2,23 @@
 #include <stdio.h>
 
 #include "insect.h"
-#define LOG_FILE "insect.log"
+
+typedef const char *cstring;
 
 static int
 record_dump(Path);
 
-static const char *
+static cstring
 time_stamp(void);
 
+#define TIME_STAMP (timestamp())
+
+#define LOG_FILE "insect.log"
+
 int
-main(int argc, char *argv[])
+main(int argc, cstring argv[])
 {
-	FILE *log_file;
+	FILE *logfp;
 	if (argc < 2) {
 		(void) fprintf(stderr, "[%s] %s (%s)\n",
 				"USAGE", *argv, "path/to/crawl *");
@@ -21,15 +26,15 @@ main(int argc, char *argv[])
 	}
 
 	/* prepare to record diagnostics */
-	if ((log_file = fopen(LOG_FILE, "a+b"))) {
-		(void) fprintf(log_file, "[insect] started logging at %s", time_stamp());
+	if ((logfp = fopen(LOG_FILE, "a+b"))) {
+		(void) fprintf(logfp, "[insect] started logging at %s", TIME_STAMP);
 	} else {
 		(void) fprintf(stderr, "[FATAL] %s (fopen failed)\n", LOG_FILE);
 		return EXIT_FAILURE;
 	}
 	/* TODO don't need this?
 	if (create_pipe(DUMP_TARGET, true_output)) {
-		(void) fprintf(log_file, "[insect] %s (failed to establish pipe)\n",
+		(void) fprintf(logfp, "[insect] %s (failed to establish pipe)\n",
 				strerror(errno));
 		return EXIT_FAILURE;
 	}
@@ -44,17 +49,17 @@ main(int argc, char *argv[])
 	while (--argc) {
 		if (file_exists(argv[argc])) {
 			(void) fprintf(stdout, "[INFO] crawled %d entries (for '%s')\n",
-					crawl((const char *) argv[argc], &remember), argv[argc]);
+					crawl((cstring) argv[argc], &remember), argv[argc]);
 		}
 	}
 	/* dump all the info into a file */
-	if (regurgitate(log_file, &record_dump)) {
+	if (regurgitate(logfp, &record_dump)) {
 		(void) fprintf(stderr, "[WARNING] entries remaining (after crawl)\n");
 	}
 
 	/* clean up resources */
-	(void) fprintf(log_file, "[insect] stopped logging at %s", time_stamp());
-	if (fclose(log_file)) {
+	(void) fprintf(logfp, "[insect] stopped logging at %s", TIME_STAMP);
+	if (fclose(logfp)) {
 		(void) fprintf(stderr, "[WARNING] %s (fclose failed)\n", LOG_FILE);
 	}
 	return EXIT_SUCCESS;
@@ -72,10 +77,10 @@ record_dump(Path path)
 
 #include <time.h>
 
-static const char *
+static cstring
 time_stamp(void)
 {
-	time_t unix_time;
-	(void) time(&unix_time);
-	return ctime(&unix_time);
+	time_t instant;
+	(void) time(&instant);
+	return ctime(&instant);
 }
